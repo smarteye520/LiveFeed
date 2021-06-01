@@ -14,11 +14,14 @@ GST_DEBUG_CATEGORY_STATIC (debug_category);
 @implementation GStreamerBackend {
     id ui_delegate;        /* Class that we use to interact with the user interface */
     GstElement *pipeline;  /* The running pipeline */
+    
     GMainContext *context; /* GLib context used to run the main loop */
     GMainLoop *main_loop;  /* GLib main loop */
     gboolean initialized;  /* To avoid informing the UI multiple times about the initialization */
     
     NSString *server_url;
+    gdouble leftValue;
+    gdouble rightValue;
 }
 
 /*
@@ -30,6 +33,8 @@ GST_DEBUG_CATEGORY_STATIC (debug_category);
     if (self = [super init])
     {
         self->ui_delegate = uiDelegate;
+        self->leftValue = 0.5;
+        self->rightValue = 0.5;
         self->server_url = [[NSString alloc] initWithString:url];
 
         GST_DEBUG_CATEGORY_INIT (debug_category, "iOS_rtsp", 0, "iOS_rtsp");
@@ -139,13 +144,19 @@ static void state_changed_cb (GstBus *bus, GstMessage *msg, GStreamerBackend *se
     g_main_context_push_thread_default(context);
 
     /* Build pipeline */
-    if([server_url isEqualToString:@""]){
-        pipeline = gst_parse_launch("audiotestsrc ! audioconvert ! audioresample ! autoaudiosink", &error);
-    } else {
-        NSString *strPipe = [NSString stringWithFormat: @"rtspsrc latency=1 location=%@ ! rtpjitterbuffer latency=0 ! rtpopusdepay ! opusdec min-latency=1 ! autoaudiosink", self->server_url];
-        const gchar *sPipe = [strPipe UTF8String];
-        pipeline = gst_parse_launch (sPipe, &error);
-    }
+//    if([server_url isEqualToString:@""]){
+//        pipeline = gst_parse_launch("audiotestsrc ! audioconvert ! audioresample ! autoaudiosink", &error);
+//    } else {
+////        NSString *strPipe = [NSString stringWithFormat: @"rtspsrc latency=1 location=%@ ! rtpjitterbuffer latency=0 ! rtpopusdepay ! opusdec min-latency=1 ! autoaudiosink", self->server_url];
+//
+//        NSString *strPipe = [NSString stringWithFormat: @"rtspsrc buffer-mode=4 latency=50 location=%@ ! rtpjitterbuffer latency=50 ! rtpopusdepay ! opusdec ! audiochannelmix left-to-left=%f left-to-right=%f right-to-left=%f right-to-right=%f ! autoaudiosink", self->server_url, self->leftValue, self->leftValue, self->rightValue, self->rightValue];
+//        const gchar *sPipe = [strPipe UTF8String];
+//        pipeline = gst_parse_launch (sPipe, &error);
+//    }
+    
+    NSString *strPipe = [NSString stringWithFormat: @"rtspsrc buffer-mode=4 latency=50 location=%@ ! rtpjitterbuffer latency=50 ! rtpopusdepay ! opusdec ! audiochannelmix left-to-left=%f left-to-right=%f right-to-left=%f right-to-right=%f ! autoaudiosink", self->server_url, self->leftValue, self->leftValue, self->rightValue, self->rightValue];
+    const gchar *sPipe = [strPipe UTF8String];
+    pipeline = gst_parse_launch (sPipe, &error);
     
     if (error) {
         gchar *message = g_strdup_printf("Unable to build pipeline: %s", error->message);
@@ -200,6 +211,12 @@ static void state_changed_cb (GstBus *bus, GstMessage *msg, GStreamerBackend *se
 -(void) setUri:(NSString*)uri
 {
     self->server_url = [[NSString alloc] initWithString:uri];
+//    NSString *strPipe = [NSString stringWithFormat: @"rtspsrc latency=1 location=%@ ", uri];
+//    NSString *strPipe = [NSString stringWithFormat: @"latency=1 location=%@ ", uri];
+        
+    const char *char_uri = [uri UTF8String];
+    g_object_set_property(pipeline, "location", char_uri);
+    GST_DEBUG ("URI set to %s", char_uri);
 }
 
 @end

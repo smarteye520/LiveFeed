@@ -42,13 +42,14 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    self.strURL = @"rtsp://nzas1.livefeed.co.nz:554/";
-
+    self.strURL = @"rtsp://nzas1.livefeed.co.nz:554/test";
     tfURL.delegate = self;
     [tfURL setText:_strURL];
     
     NSAttributedString *str = [[NSAttributedString alloc] initWithString:@"Type your rtsp address" attributes:@{ NSForegroundColorAttributeName : [UIColor lightGrayColor] }];
     self.tfURL.attributedPlaceholder = str;
+    
+    gst_backend = [[GStreamerBackend alloc] init:self url:_strURL];
     
     [self initialView];
 }
@@ -167,18 +168,18 @@
     
     NSLog(@"%@", textField.text);
     _strURL = [NSString stringWithFormat:@"%@", textField.text];
+    [gst_backend setUri:_strURL];
     
-    if (gst_backend){
-        [gst_backend deinit];
-        gst_backend = nil;
-        gst_backend = [[GStreamerBackend alloc] init:self url:_strURL];
-    } else {
-        gst_backend = [[GStreamerBackend alloc] init:self url:_strURL];
-    }
-    
+//    if (gst_backend){
+//        [gst_backend deinit];
+//        gst_backend = nil;
+//        gst_backend = [[GStreamerBackend alloc] init:self url:_strURL];
+//    } else {
+//        gst_backend = [[GStreamerBackend alloc] init:self url:_strURL];
+//    }
         
-    btnPlay.enabled = FALSE;
-    btnPause.enabled = FALSE;
+    btnPlay.enabled = TRUE;
+    btnPause.enabled = TRUE;
     
     return NO;
 }
